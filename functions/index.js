@@ -30,20 +30,23 @@ app.get('/en/yokai/:name', async (req, res)=>{
     const ref=db.ref("en/yokai")
     let docInfo
     await ref.once('value', snapshot=>{
-      docInfo=snapshot
+      docInfo=snapshot.val()
     })
     let array=[]
-    for(let name in docInfo.toJSON())
-      array.push({name, ...docInfo.toJSON()[name]})
+    for(let name in docInfo)
+      array.push({name, ...docInfo[name]})
+    array.forEach(el=>{
+      el.alias=JSON.parse(JSON.stringify(el.alias))
+    })
     const options = {
-      includeScore: false,
-      keys: ['name']
+      includeScore: true,
+      keys: ['name', 'alias']
     }
     const fuseRes = new fuse(array, options)
     const result = fuseRes.search(searchName)
     return res.status(200).send(result[0])
   }catch(err){
-    return res.status(400).send("Bad request")
+    return res.status(400).json({ error: err.toString() })
   }
 })
 
@@ -81,7 +84,8 @@ app.post('/create', async(req, res)=>{
           //Link to image of puni
           img: req.body.img,
           series: req.body.series,
-          actualName: req.body.name
+          actualName: req.body.name,
+          alias: req.body.alias
         })
         return res.status(200).send("Pushed "+req.body.name)
       }
